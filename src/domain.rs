@@ -30,6 +30,11 @@ pub enum Priority {
     C,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ErrorPlan {
+    ErrorZero,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 // path for org file???
 pub struct SourceRef {
@@ -87,16 +92,20 @@ pub fn display_duration(time: Duration) -> (u64, u64) {
 }
 
 impl PomodoroPlan {
-    pub fn new(focus_d: Duration, break_d: Duration, slices: u8) -> Option<Self> {
+    pub fn new(focus_d: Duration, break_d: Duration, slices: u8) -> Result<Self, ErrorPlan> {
+        let err;
         let Some(s) = NonZeroU8::new(slices) else {
-            return None;
+            err = ErrorZero;
         };
-        Some(Self {
-            focus: focus_d,
-            break_time: break_d,
-            slices: s,
-            autostart_next: false,
-        })
+        Result(
+            Self {
+                focus: focus_d,
+                break_time: break_d,
+                slices: s,
+                autostart_next: false,
+            },
+            err,
+        )
     }
 
     pub fn plan(&self) {
