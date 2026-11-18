@@ -1,3 +1,4 @@
+use core::fmt;
 use jiff::civil::DateTime;
 use std::{
     cmp::Ordering,
@@ -32,8 +33,18 @@ pub enum Priority {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ErrorPlan {
-    ErrorZero,
+    ZeroValue,
 }
+
+impl fmt::Display for ErrorPlan {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ErrorPlan::ZeroValue => write!(f, "can't accept the value zero."),
+        }
+    }
+}
+
+impl std::error::Error for ErrorPlan {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 // path for org file???
@@ -85,27 +96,37 @@ pub fn user_input_parse(input: &str) -> Duration {
 }
 
 pub fn display_duration(time: Duration) -> (u64, u64) {
-    let minutes: u64 = time.as_secs() / 60;
-    let hours: u64 = minutes / 60;
+    let mut minutes: u64 = time.as_secs() / 60;
+    let mut hours: u64 = 0;
+    loop {
+        if minutes < 59 {
+            break;
+        } else {
+            hours += 1;
+            minutes -= 60;
+        }
+    }
     // format!("{0}:{1}", hours, minutes)
     (hours, minutes)
 }
 
 impl PomodoroPlan {
-    pub fn new(focus_d: Duration, break_d: Duration, slices: u8) -> Result<Self, ErrorPlan> {
-        let err;
-        let Some(s) = NonZeroU8::new(slices) else {
-            err = ErrorZero;
+    pub fn new(
+        focus_d: Duration,
+        break_d: Duration,
+        slices: u8,
+    ) -> Result<PomodoroPlan, ErrorPlan> {
+        // let err;
+        let s = match NonZeroU8::new(slices) {
+            Some(s) => s,
+            None => return Err(ErrorPlan::ZeroValue),
         };
-        Result(
-            Self {
-                focus: focus_d,
-                break_time: break_d,
-                slices: s,
-                autostart_next: false,
-            },
-            err,
-        )
+        Ok(Self {
+            focus: focus_d,
+            break_time: break_d,
+            slices: s,
+            autostart_next: false,
+        })
     }
 
     pub fn plan(&self) {
